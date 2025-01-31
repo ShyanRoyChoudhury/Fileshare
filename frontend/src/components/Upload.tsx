@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Upload } from "lucide-react"
 import { uploadFile } from "../api/upload"
 
-export default function FileUploadPage() {
+export default function FileUpload() {
   const [file, setFile] = useState<FileList | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,7 +28,8 @@ export default function FileUploadPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    // <div className="min-h-screen flex items-center justify-center">
+    // </div>
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <div className="flex flex-col items-center space-y-6">
           {/* Logo */}
@@ -59,7 +60,6 @@ export default function FileUploadPage() {
           {error && <p className="text-sm text-red-500">{error}</p>}
         </div>
       </div>
-    </div>
   )
 }
 

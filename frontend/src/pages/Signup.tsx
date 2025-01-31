@@ -2,11 +2,12 @@
 
 import { ReactEventHandler, useState } from "react"
 import { LogIn, Mail, Lock } from "lucide-react"
-import { doSignInUserWithEmailAndPassword, signInWithGoogle } from "../firebase/auth";
+import { signInWithGoogle, doSignUpUserWithEmailAndPassword } from "../firebase/auth";
 import { signInApi } from "../api/signInApi";
 import { useNavigate } from "react-router-dom";
+import { signUpApi } from "../api/signUpApi";
 
-export default function SignInPage() {
+export default function SignUpPage() {
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -20,7 +21,7 @@ export default function SignInPage() {
         setIsSigningIn(true);
         signInWithGoogle().then(async res=>{
             const response = await signInApi(res._tokenResponse.idToken)
-            if(response?.data?.requireRegistration){
+            if(response.data.requireRegistration){
               navigate('/signup')
             }
         }).catch(err => {
@@ -30,17 +31,16 @@ export default function SignInPage() {
   }
 
 
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     // Here you would typically handle the sign-in logic
-    console.log("Sign in attempted with:", { email, password })
-    const fbResponse = await doSignInUserWithEmailAndPassword(email, password)
-    if(!fbResponse?._tokenResponse?.idToken){
-
-    }
-    const response = await signInApi(fbResponse?._tokenResponse?.idToken)
-    if(!response?.data?.requireRegistration){
-      navigate('/dashboard')
+    // console.log("Sign in attempted with:", { email, password })
+    const response = await doSignUpUserWithEmailAndPassword(email, password)
+    console.log('response?.user?.emailVerified', response?.user?.emailVerified)
+    console.log('response', response)
+    if(response?._tokenResponse?.idToken){
+        await signUpApi({idToken: response?._tokenResponse?.idToken, email: response.user.email})
     }
   }
 
@@ -53,7 +53,7 @@ export default function SignInPage() {
             <LogIn className="w-12 h-12 text-white" />
           </div>
 
-          <h1 className="text-2xl font-bold text-gray-800">Sign In</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Sign Up</h1>
 
           {/* Sign In Form */}
           <form onSubmit={handleSubmit} className="w-full space-y-4">
