@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactEventHandler, useState } from "react"
+import { useState } from "react"
 import { LogIn, Mail, Lock } from "lucide-react"
 import { signInWithGoogle, doSignUpUserWithEmailAndPassword } from "../firebase/auth";
 import { signInApi } from "../api/signInApi";

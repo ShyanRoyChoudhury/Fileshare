@@ -1,15 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { File, Trash2, Upload, LogOut } from "lucide-react"
+import { File, Upload, LogOut } from "lucide-react"
 import FileUpload from "../components/Upload"
 import { getFileListApi } from "../api/getListApi"
+import FileListComponent from "../components/FileList"
 
-interface UploadedFile {
-  id: string
+export interface UploadedFile {
+  uid: string
   name: string
   size: string
-  uploadDate: string
+  created_at: string
 }
 
 export default function DashboardPage() {
@@ -20,15 +21,10 @@ export default function DashboardPage() {
     console.log('response in dasgb', response)
     setFiles(response.data)
   }
-  useEffect(()=> {console.log(files)}, [files])
 
   useEffect(()=> {
     getList()
   }, [])
-
-  const deleteFile = (uid: string) => {
-    setFiles(files.filter((file) => file.uid !== uid))
-  }
 
   return (
     <div className="min-h-screen">
@@ -52,7 +48,7 @@ export default function DashboardPage() {
       </nav>
 
         <div className="flex justify-center">
-      <FileUpload />
+      <FileUpload getList={getList}/>
 
         </div>
 
@@ -62,26 +58,10 @@ export default function DashboardPage() {
             <div className="px-4 py-5 sm:px-6">
               <h3 className="text-lg leading-6 font-medium text-gray-900">Your Uploaded Files</h3>
             </div>
-            <ul className="divide-y divide-gray-200">
-              {files.map((file) => (
-                <li key={file.id} className="px-4 py-4 sm:px-6 hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <File className="w-5 h-5 text-blue-500 mr-3" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {file.size} • Uploaded on {file.created_at}
-                        </p>
-                      </div>
-                    </div>
-                    <button onClick={() => deleteFile(file.id)} className="text-red-500 hover:text-red-700">
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+
+            <>
+                <FileListComponent files={files} setFiles={setFiles} getList={getList}/>
+            </>
           </div>
         </div>
       </main>

@@ -6,7 +6,15 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from .serializers.SignInSerializer  import SignInSerializer
 from .serializers.FileListSerializer import FileListSerializer
 from .serializers.SignUpSerializer import SignUpSerializer
+from .serializers.FileDownloadSerializer import FileDownloadSerializer
+from .serializers.FileDeleteSerializer import FileDeleteSerializer
+from django.http import FileResponse
+import urllib.parse
+
 from .models import Files
+import os
+import mimetypes
+
 # Create your views here.
 
 @api_view(['GET'])
@@ -175,9 +183,7 @@ def signUp(request):
 def getList(request):
     try:
         user = request.userEmail
-        # files = Files.objects.get(user=user)
-        files = Files.objects.filter(user=user).values('uid', 'file', 'created_at', 'name')
-        print('files', files)
+        files = Files.objects.filter(user=user, deleted=False).values('uid', 'file', 'created_at', 'name')
         return Response({
             'status': 200,
             'data': {
@@ -189,6 +195,135 @@ def getList(request):
     except Exception as e:
         print("ERRROR", e)
         return Response({
-            'status': 500,
-            'message': 'Internal server error',
+            'data': {
+                'status': "Fail",
+                'data': None,
+                'message': "Internal Server Error"
+            }
+        })
+    
+
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def downloadFile(request, uid):
+    try:
+        userEmail = request.userEmail
+        serializer = FileDownloadSerializer(data={'uid':str(uid)})
+        if not serializer.is_valid():
+            return Response({
+                'status': 200,
+                'message': 'validation error'
+            })
+
+        # filepath = Files.objects.filter(uid=str(uid)).values('file')
+        file_obj = Files.objects.filter(uid=str(uid), deleted=False).first()
+        if not file_obj:
+            return Response({
+                'data': {
+                    'status': "Fail",
+                    'message': "File not found"
+                }
+            })
+        filepath = file_obj.file.path
+        if os.path.exists(filepath):
+            response = FileResponse(
+            open(filepath, 'rb'),
+            as_attachment=True,  # Force download
+            filename=file_obj.name  # Original filename
+            )
+        
+            # Add additional headers to force download
+            mime_type, _ = mimetypes.guess_type(filepath)
+            response['Content-Type'] = mime_type if mime_type else "application/octet-stream"
+            # response['Content-Type'] = 'application/octet-stream'
+            # response['Content-Disposition'] = f'attachment; filename="{file_obj.name}"'
+            safe_filename = urllib.parse.quote(file_obj.name)
+            response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
+            del response['X-Sendfile']
+            return response
+            
+        return Response({
+                'data': {
+                    'status': "Fail",
+                    'message': "File not found on server"
+                },
+            })
+    except Exception as e:
+        print("ERRROR", e)
+        return Response({
+            'data': {
+                'status': "Fail",
+                'data': None,
+                'message': "Internal Server Error"
+            }
+        })
+    
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def deleteFile(request, uid):
+    try:
+        serializer = FileDeleteSerializer(data={'uid': str(uid)})
+        if not serializer.is_valid():
+            return Response({
+                'data': {
+                    'status': "Fail",
+                    'data': None,
+                    'message': 'validation error'
+                }
+            })
+        # delete_file = Files.objects.update_or_create(uid=uid, defaults={'deleted': True})
+        # if not delete_file:
+        #     return Response({
+        #         'data': {
+        #             'status': "Fail",
+        #             'data': None,
+        #             'message': 'File delete operation failed'
+        #         }
+        #     })
+        
+
+        # return Response({
+        #         'data': {
+        #             'status': "Success",
+        #             'data': None,
+        #             'message': 'File deleted'
+        #         }
+        #     })
+
+        try:
+            file_obj = Files.objects.get(uid=str(uid))
+        except Files.DoesNotExist:
+            return Response({
+                'data': {
+                    'status': "Fail",
+                    'data': None,
+                    'message': "File not found"
+                }
+            }, status=404)
+
+        # Delete file from file system
+        file_path = file_obj.file.path  
+        if file_path and os.path.exists(file_path):
+            os.remove(file_path)  # Delete file from storage
+
+        # Delete record from database
+        file_obj.delete()
+
+        return Response({
+            'data': {
+                'status': "Success",
+                'data': None,
+                'message': "File deleted successfully"
+            }
+        })
+    except Exception as e:
+        print("ERRROR", e)
+        return Response({
+            'data': {
+                'status': "Fail",
+                'data': None,
+                'message': "Internal Server Error"
+            }
         })

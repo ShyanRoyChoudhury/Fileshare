@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Upload } from "lucide-react"
 import { uploadFile } from "../api/upload"
 
-export default function FileUpload() {
+export default function FileUpload({ getList }: { getList: ()=> Promise<void> }) {
   const [file, setFile] = useState<FileList | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -20,6 +20,7 @@ export default function FileUpload() {
         e.preventDefault();
         if(file){
             await uploadFile(file);
+            getList()
         }
     }catch(error){
         setError("File upload error")

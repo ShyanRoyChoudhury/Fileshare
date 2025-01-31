@@ -1,17 +1,17 @@
 import axios from "axios"
 import { BASE_URL } from "../config"
 
-export const getFileListApi = async() => {
+export const deleteFileApi = async(uid:string) => {
     try{
-        const response = await axios.get(`${BASE_URL}/getList`, {
+        const response = await axios.get(`${BASE_URL}/delete/${uid}`, {
             headers: {
                 "Content-Type": "application/json",
             },
             withCredentials: true,
         })
-        console.log('response in get file api', response)
-        if(response.data.data.status === 'Success'){
-            return response.data.data;
+        console.log('response in delete file api', response)
+        if(response.data.status === 'Success'){
+            return response.data;
         }
         return null;
     }catch(error){

@@ -16,9 +16,7 @@ class SignUpSerializer(serializers.Serializer):
 
     def signUp(self):
         idToken = self.validated_data['idToken']
-        print(" inside signup serializer")
         validated_user = validate_user(idToken)
-        print("user:", validated_user)
 
         email = validated_user.get('email')
         print("email", email)

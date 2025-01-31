@@ -14,12 +14,11 @@ class FileListSerializer(serializers.Serializer):
             db_user = User.objects.get(email=user.email)
             print("Database user:", db_user)
         except User.DoesNotExist:
-            raise serializers.ValidationError("User with this email does not exist in the database.")
+            raise serializers.ValidationError("User not found")
         files = validated_date.pop('files')
         files_objs = []
         for file in files:
             print("file", file)
-            files_obj = Files.objects.create(file = file, user=db_user, name = file.name)
+            files_obj = Files.objects.create(file = file, user=db_user, name = file.name, deleted = False)
             files_objs.append(files_obj)
-
-        return files_objs  
+        return files_objs

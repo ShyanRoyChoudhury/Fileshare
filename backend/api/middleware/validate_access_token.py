@@ -1,6 +1,7 @@
 import jwt
 from django.conf import settings
 from ..models import User
+from django.http import JsonResponse
 
 def decode_token(token):
     try:
@@ -24,7 +25,6 @@ class AccessTokenMiddleware:
 
         try:
             access_token = request.COOKIES.get('access_token')
-            print("access_token", access_token)
             
             if access_token:
                 # Add Authorization header
@@ -32,20 +32,26 @@ class AccessTokenMiddleware:
 
                 # Decode the token
                 token = decode_token(access_token)
-                print("Decoded token:", token)
 
-                if isinstance(token, dict):  # Ensure token is decoded successfully
-                    email = token.get('email')
-                    if email:
-                        # Query the User model
-                        try:
-                            user = User.objects.get(email=email, deleted=False)
-                            print("User found:", user)
-                            request.userEmail = user
-                        except User.DoesNotExist:
-                            print("User not found or deleted.")
-                    else:
-                        print("Invalid token structure.")
+                if not isinstance(token, dict):  # Ensure token is decoded successfully
+                    return JsonResponse({
+                        'data': {
+                            "status": "Fail",
+                            "message": token
+                        }
+                    })
+                
+                email = token.get('email')
+                if email:
+                    # Query the User model
+                    try:
+                        user = User.objects.get(email=email, deleted=False)
+                        print("User found:", user)
+                        request.userEmail = user
+                    except User.DoesNotExist:
+                        print("User not found or deleted.")
+                else:
+                    print("Invalid token structure.")
             return self.get_response(request)  # Ensure this is returned
 
         except Exception as e:
