@@ -2,25 +2,24 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view,  permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from .serializers.SignInSerializer  import SignInSerializer
 from .serializers.FileListSerializer import FileListSerializer
 from .serializers.SignUpSerializer import SignUpSerializer
 from .serializers.FileDownloadSerializer import FileDownloadSerializer
 from .serializers.FileDeleteSerializer import FileDeleteSerializer
+from .serializers.GenerateFileLinkSerializer import GenerateFileLinkSerializer
+from .encryption.encrypt import EncryptionHandler
 from django.http import FileResponse
+from django.core.files.base import ContentFile
 import urllib.parse
 
-from .models import Files
 import os
+from .models import Files, FileDownloadLink
 import mimetypes
+from datetime import timedelta
+from django.utils import timezone
 
 # Create your views here.
-
-@api_view(['GET'])
-def hello_world(request):
-    return Response({"message": "Hello, React!"})
-
 
 @api_view(['POST'])
 @authentication_classes([])
@@ -226,29 +225,51 @@ def downloadFile(request, uid):
                 }
             })
         filepath = file_obj.file.path
-        if os.path.exists(filepath):
-            response = FileResponse(
-            open(filepath, 'rb'),
-            as_attachment=True,  # Force download
-            filename=file_obj.name  # Original filename
-            )
-        
-            # Add additional headers to force download
-            mime_type, _ = mimetypes.guess_type(filepath)
-            response['Content-Type'] = mime_type if mime_type else "application/octet-stream"
-            # response['Content-Type'] = 'application/octet-stream'
-            # response['Content-Disposition'] = f'attachment; filename="{file_obj.name}"'
-            safe_filename = urllib.parse.quote(file_obj.name)
-            response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
-            del response['X-Sendfile']
-            return response
-            
-        return Response({
+        if not os.path.exists(filepath):
+            return Response({
                 'data': {
                     'status': "Fail",
                     'message': "File not found on server"
                 },
             })
+        
+        with open(filepath, 'rb') as encrypted_file:
+            encrypted_content = encrypted_file.read()
+        
+        decryption_handler = EncryptionHandler()
+        try:
+            decrypted_content = decryption_handler.decrypt_file(encrypted_content)
+
+        except Exception as e:
+            print("Decryption error:", e)
+            return Response({
+                'data': {
+                    'message': "Error decrypting file"
+                }
+            })
+
+        decrypted_file = ContentFile(decrypted_content)
+        response = FileResponse(
+            decrypted_file,
+            as_attachment=True,  # Force download
+            filename=file_obj.name  # Original filename
+        )
+    
+        # Add additional headers to force download
+        mime_type, _ = mimetypes.guess_type(filepath)
+        response['Content-Type'] = mime_type if mime_type else "application/octet-stream"
+        # response['Content-Type'] = 'application/octet-stream'
+        # response['Content-Disposition'] = f'attachment; filename="{file_obj.name}"'
+        safe_filename = urllib.parse.quote(file_obj.name)
+        response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
+
+        response['Content-Length'] = len(decrypted_content)
+
+        if 'X-Sendfile' in response:
+            del response['X-Sendfile']
+        return response
+            
+        
     except Exception as e:
         print("ERRROR", e)
         return Response({
@@ -273,24 +294,6 @@ def deleteFile(request, uid):
                     'message': 'validation error'
                 }
             })
-        # delete_file = Files.objects.update_or_create(uid=uid, defaults={'deleted': True})
-        # if not delete_file:
-        #     return Response({
-        #         'data': {
-        #             'status': "Fail",
-        #             'data': None,
-        #             'message': 'File delete operation failed'
-        #         }
-        #     })
-        
-
-        # return Response({
-        #         'data': {
-        #             'status': "Success",
-        #             'data': None,
-        #             'message': 'File deleted'
-        #         }
-        #     })
 
         try:
             file_obj = Files.objects.get(uid=str(uid))
@@ -327,3 +330,142 @@ def deleteFile(request, uid):
                 'message': "Internal Server Error"
             }
         })
+    
+
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def generateLink(request, uid):
+    try:
+        serializers = GenerateFileLinkSerializer(data={'uid':str(uid)})
+
+        if not serializers.is_valid():
+            return Response({
+                'data': {
+                    'status': "Fail",
+                    'message': 'validation error'
+                }
+            })
+        
+        file = Files.objects.filter(uid=uid, deleted=False).first()
+        if not file:
+            return Response({
+                'data': {
+                    'status': "Fail",
+                    'message': "File not found"
+                }
+            })
+
+        expires_at = timezone.now() + timedelta(hours=24)
+        temp_link = FileDownloadLink.objects.create(
+            file=file,
+            expires_at=expires_at
+        )
+        # Return the download link
+        download_link = f"http://localhost:8000/api/downloadTemp/{temp_link.token}/"
+        return Response({
+            'status': "Success",
+            'data': {
+                'download_link': download_link,
+                'expires_at': expires_at
+            }
+        })
+    except Exception as e:
+        print("ERROR", e)
+        return Response({
+            'data': {
+                'status': "Fail",
+                'message': "Internal server Error"
+            }
+        }, status=500)
+    
+
+
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def downloadFileTempLink(request, token):
+    try:
+        # Get the temporary download link
+        print("temp_link", token)
+        temp_link = FileDownloadLink.objects.filter(token=str(token)).first()
+        print("temp_link", temp_link)
+        print("temp_link_test")
+        if not temp_link:
+            return Response({
+                'status': "Fail",
+                'message': "Invalid download link"
+            }, status=404)
+
+        # Check if the link has expired
+        if temp_link.is_expired():
+            return Response({
+                'status': "Fail",
+                'message': "Download link has expired"
+            }, status=410)  # 410 Gone
+
+        # Check if the link has already been used
+        if temp_link.is_used:
+            return Response({
+                'status': "Fail",
+                'message': "Download link has already been used"
+            }, status=403)  # 403 Forbidden
+
+        # Get the file
+        file_obj = temp_link.file
+        filepath = file_obj.file.path
+        if not os.path.exists(filepath):
+            return Response({
+                'status': "Fail",
+                'message': "File not found on server"
+            }, status=404)
+
+        # Serve the file
+        response = FileResponse(
+            open(filepath, 'rb'),
+            as_attachment=True,
+            filename=file_obj.name
+        )
+        mime_type, _ = mimetypes.guess_type(filepath)
+        response['Content-Type'] = mime_type if mime_type else "application/octet-stream"
+        safe_filename = urllib.parse.quote(file_obj.name)
+        response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
+        del response['X-Sendfile']
+
+        # Mark the link as used
+        temp_link.mark_as_used()
+
+        return response
+    except Exception as e:
+        print("ERROR", e)
+        return Response({
+            'data': {
+                'message': "Internal Server Error",
+                'status': "Fail",
+            }
+        }, status=500)
+    
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+@authentication_classes([])
+def Logout(request):
+    response =  Response({
+                'data': {
+                    'status': "Success"
+                }
+            })
+
+    response.set_cookie(
+        key='access_token',  # Cookie name
+        value='',
+        httponly=True,  # Makes the cookie inaccessible to JavaScript
+        secure=False,  # Only sends the cookie over HTTPS
+        samesite='Lax',  # Provides CSRF protection
+        max_age=0,  # Cookie expires in 24 hours
+        path='/',  # Cookie is available for all paths
+        domain='localhost'
+    )
+
+    return response

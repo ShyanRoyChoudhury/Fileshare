@@ -2,6 +2,7 @@ import jwt
 from django.conf import settings
 from ..models import User
 from django.http import JsonResponse
+from django.urls import path
 
 def decode_token(token):
     try:
@@ -19,8 +20,8 @@ class AccessTokenMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        excluded_paths = ["/api/signin", "/api/signUp"]
-        if request.path in excluded_paths:
+        excluded_paths = ["/api/signin", "/api/signUp", "/api/downloadTemp/", "/api/logout"]
+        if any(request.path.startswith(path) for path in excluded_paths):
             return self.get_response(request)
 
         try:

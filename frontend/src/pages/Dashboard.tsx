@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { File, Upload, LogOut } from "lucide-react"
 import FileUpload from "../components/Upload"
 import { getFileListApi } from "../api/getListApi"
 import FileListComponent from "../components/FileList"
+import Navbar from "../components/Navbar"
 
 export interface UploadedFile {
   uid: string
@@ -28,28 +28,10 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen">
-      <nav className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <File className="w-8 h-8 text-blue-500" />
-              <span className="ml-2 text-xl font-semibold text-gray-800">File Dashboard</span>
-            </div>
-            <div className="flex items-center">
-              {/* <Link href="/upload" className="mr-4 text-gray-600 hover:text-blue-500"> */}
-                <Upload className="w-5 h-5" />
-              {/* </Link> */}
-              <button className="text-gray-600 hover:text-blue-500">
-                <LogOut className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
+        <Navbar />
+        
         <div className="flex justify-center">
-      <FileUpload getList={getList}/>
-
+            <FileUpload getList={getList}/>
         </div>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">

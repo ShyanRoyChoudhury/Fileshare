@@ -1,6 +1,8 @@
 from django.db import models
 import uuid
 import os
+from django.utils.crypto import get_random_string
+from django.utils import timezone
 # Create your models here.
 
 def generateUID():
@@ -30,3 +32,27 @@ class Files(models.Model):
     created_at = models.DateTimeField(auto_now=True)
     deleted = models.BooleanField(default=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+
+class FileDownloadLink(models.Model):
+    id = models.AutoField(primary_key=True)
+    token = models.CharField(max_length=64, unique=True, )
+    created_at = models.DateTimeField(auto_now=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    file = models.ForeignKey(Files, on_delete=models.CASCADE)
+
+    def generate_token(self):
+        return get_random_string(length=64)
+    
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = self.generate_token()
+        super().save(*args, **kwargs)
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+    
+    def mark_as_used(self):
+        self.is_used = True
+        self.save()
