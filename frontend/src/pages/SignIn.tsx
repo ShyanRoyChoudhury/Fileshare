@@ -1,10 +1,11 @@
 "use client"
 
-import { ReactEventHandler, useState } from "react"
+import { useState } from "react"
 import { LogIn, Mail, Lock } from "lucide-react"
 import { doSignInUserWithEmailAndPassword, signInWithGoogle } from "../firebase/auth";
 import { signInApi } from "../api/signInApi";
 import { useNavigate } from "react-router-dom";
+import { UserCredential } from "firebase/auth";
 
 export default function SignInPage() {
 
@@ -14,33 +15,63 @@ export default function SignInPage() {
   const [ isSigningIn, setIsSigningIn ] = useState(false)
   const navigate = useNavigate();
 
-  const onGoogleSignIn = (_e: React.MouseEventHandler<HTMLDivElement>) => {
+  const onGoogleSignIn = async (_e: React.MouseEvent<HTMLDivElement>) => {
     // e.preventDefault();
     if(!isSigningIn){
         setIsSigningIn(true);
-        signInWithGoogle().then(async res=>{
-            const response = await signInApi(res._tokenResponse.idToken)
-            if(response?.data?.requireRegistration){
-              navigate('/signup')
-            }
-        }).catch(err => {
-            setIsSigningIn(false)
-        })
+        // signInWithGoogle().then(async res=>{
+        //     const response = await signInApi(res._tokenResponse.idToken)
+        //     if(response?.data?.requireRegistration){
+        //       navigate('/signup')
+        //     }
+        // }).catch(err => {
+        //     setIsSigningIn(false)
+        // })
+        const userCredential: UserCredential = await signInWithGoogle();
+        const idToken = await userCredential.user.getIdToken();
+        const response = await signInApi(idToken);
+        
+        if (response?.data?.requireRegistration) {
+          navigate('/signup');
+        }
     }
   }
 
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    // Here you would typically handle the sign-in logic
-    console.log("Sign in attempted with:", { email, password })
-    const fbResponse = await doSignInUserWithEmailAndPassword(email, password)
-    if(!fbResponse?._tokenResponse?.idToken){
+  // const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  //   event.preventDefault()
+  //   // Here you would typically handle the sign-in logic
+  //   console.log("Sign in attempted with:", { email, password })
+  //   const fbResponse = await doSignInUserWithEmailAndPassword(email, password)
+  //   if(!fbResponse?._tokenResponse?.idToken){
 
-    }
-    const response = await signInApi(fbResponse?._tokenResponse?.idToken)
-    if(!response?.data?.requireRegistration){
-      navigate('/dashboard')
+  //   }
+  //   const response = await signInApi(fbResponse?._tokenResponse?.idToken)
+  //   if(!response?.data?.requireRegistration){
+  //     navigate('/dashboard')
+  //   }
+  // }
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    
+    try {
+      setIsSigningIn(true);
+      const userCredential = await doSignInUserWithEmailAndPassword(email, password);
+      const idToken = await userCredential.user.getIdToken();
+      
+      if (!idToken) {
+        throw new Error('Failed to get authentication token');
+      }
+  
+      const response = await signInApi(idToken);
+      if (response?.data?.requireRegistration === false) {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Sign in error:', error);
+    } finally {
+      setIsSigningIn(false);
     }
   }
 

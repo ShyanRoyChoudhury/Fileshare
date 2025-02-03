@@ -57,6 +57,7 @@ def post(request):
 @permission_classes([AllowAny])
 def signIn(request):
     try:
+        print("inside api")
         # Check if request.data exists and is not empty
         if not request.data:
             return Response({
@@ -176,11 +177,12 @@ def signUp(request):
         })
     
 
-@api_view(['GET'])
+@api_view(['POST'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def getList(request):
     try:
+        print("test print")
         user = request.userEmail
         files = Files.objects.filter(user=user, deleted=False).values('uid', 'file', 'created_at', 'name')
         return Response({

@@ -6,6 +6,7 @@ import { signInWithGoogle, doSignUpUserWithEmailAndPassword } from "../firebase/
 import { signInApi } from "../api/signInApi";
 import { useNavigate } from "react-router-dom";
 import { signUpApi } from "../api/signUpApi";
+import { UserCredential } from "firebase/auth";
 
 export default function SignUpPage() {
 
@@ -15,34 +16,41 @@ export default function SignUpPage() {
   const [ isSigningIn, setIsSigningIn ] = useState(false)
   const navigate = useNavigate();
 
-  const onGoogleSignIn = (_e: React.MouseEventHandler<HTMLDivElement>) => {
-    // e.preventDefault();
+  const onGoogleSignIn = async (_e: React.MouseEvent<HTMLDivElement>) => {
     if(!isSigningIn){
         setIsSigningIn(true);
-        signInWithGoogle().then(async res=>{
-            const response = await signInApi(res._tokenResponse.idToken)
-            if(response.data.requireRegistration){
-              navigate('/signup')
-            }
-        }).catch(err => {
-            setIsSigningIn(false)
-        })
+        const userCredential: UserCredential = await signInWithGoogle();
+        const idToken = await userCredential.user.getIdToken();
+        const response = await signInApi(idToken);
+        
+        if (response?.data?.requireRegistration) {
+          navigate('/signup');
+        }
     }
   }
 
+const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try {
+      setIsSigningIn(true);
+      const userCredential = await doSignUpUserWithEmailAndPassword(email, password);
+      const idToken = await userCredential.user.getIdToken();
+      const userEmail = userCredential.user.email;
 
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    // Here you would typically handle the sign-in logic
-    // console.log("Sign in attempted with:", { email, password })
-    const response = await doSignUpUserWithEmailAndPassword(email, password)
-    console.log('response?.user?.emailVerified', response?.user?.emailVerified)
-    console.log('response', response)
-    if(response?._tokenResponse?.idToken){
-        await signUpApi({idToken: response?._tokenResponse?.idToken, email: response.user.email})
+      if (!userEmail) {
+        throw new Error('No email found for user');
+      }
+      if (idToken) {
+        await signUpApi({ idToken, email: userEmail });
+        navigate('/dashboard'); 
+      }
+    } catch (error) {
+      console.error("Sign up error:", error);
+    } finally {
+      setIsSigningIn(false);
     }
   }
+
 
   return (
     <div className="min-h-screen flex items-center justify-center">

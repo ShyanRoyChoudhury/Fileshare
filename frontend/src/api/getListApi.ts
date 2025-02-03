@@ -3,7 +3,7 @@ import { BASE_URL } from "../config"
 
 export const getFileListApi = async() => {
     try{
-        const response = await axios.get(`${BASE_URL}/getList`, {
+        const response = await axios.post(`${BASE_URL}/getList`, {} ,{
             headers: {
                 "Content-Type": "application/json",
             },

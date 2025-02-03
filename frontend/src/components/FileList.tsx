@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
-import { File, Trash2, Download, Link, Clipboard } from "lucide-react"
+import { File, Trash2, Download, Link } from "lucide-react"
 import { UploadedFile } from '../pages/Dashboard'
 import { downloadFileApi } from '../api/downloadFile'
 import { deleteFileApi } from '../api/deleteFileApi'
 import { generateFileLinkApi } from '../api/generateFileLinkApi'
-function FileListComponent({files, setFiles, getList}: {
+function FileListComponent({files, getList}: {
     files: UploadedFile[], 
     setFiles: React.Dispatch<React.SetStateAction<UploadedFile[]>>
     getList: () => Promise<void>

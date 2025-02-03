@@ -1,0 +1,28 @@
+services:
+  frontend:
+    build: 
+      context: ./frontend
+    ports:
+      - "443:443"
+    volumes:
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+    networks:
+      - app-network  # Added this
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./certs:/app/certs:ro
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

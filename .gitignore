@@ -6,3 +6,5 @@ db.sqlite3
 
 service-account.json
 backend/api/service-account.json
+backend/media/
+certs/
