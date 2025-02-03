@@ -3,7 +3,18 @@ import uuid
 import os
 from django.utils.crypto import get_random_string
 from django.utils import timezone
-# Create your models here.
+from enum import IntEnum
+
+class PermissionTypes(IntEnum):
+  """
+    enum class for use in File Link permission model
+  """
+  Read = 1
+  Write = 2
+  
+  @classmethod
+  def choices(cls):
+    return [(key.value, key.name) for key in cls]
 
 def generateUID():
     return str(uuid.uuid4())
@@ -16,6 +27,8 @@ class User(models.Model):
     deleted = models.BooleanField(default=False)
     email = models.EmailField(unique=True, max_length=50)
     number = models.CharField(unique=True, max_length=13, null=True)
+    mfa_secret = models.CharField(max_length=16, blank=True, null=True)
+    mfa_enabled = models.BooleanField(default=False)
 
     def __str__(self):
         return self.email
@@ -41,6 +54,7 @@ class FileDownloadLink(models.Model):
     expires_at = models.DateTimeField()
     is_used = models.BooleanField(default=False)
     file = models.ForeignKey(Files, on_delete=models.CASCADE)
+    # permission = models.IntegerField(choices=PermissionTypes.choices(), default=PermissionTypes.Read)
 
     def generate_token(self):
         return get_random_string(length=64)

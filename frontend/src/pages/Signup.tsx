@@ -36,13 +36,16 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
       const userCredential = await doSignUpUserWithEmailAndPassword(email, password);
       const idToken = await userCredential.user.getIdToken();
       const userEmail = userCredential.user.email;
-
+      const result = userCredential.user;
+      alert("verification email sent")
       if (!userEmail) {
         throw new Error('No email found for user');
       }
       if (idToken) {
         await signUpApi({ idToken, email: userEmail });
-        navigate('/dashboard'); 
+        // navigate("/verifyEmail", { state: { result } });
+        navigate("/verifyEmail", { state: { user: { email: userEmail, uid: userCredential.user.uid } } });
+
       }
     } catch (error) {
       console.error("Sign up error:", error);

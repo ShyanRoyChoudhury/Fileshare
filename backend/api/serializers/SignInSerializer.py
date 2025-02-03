@@ -73,7 +73,8 @@ class SignInSerializer(serializers.Serializer):
                 "refreshToken": str(refresh),
                 "user": {
                     "email": email,
-                    "name": user.name
+                    "name": user.name,
+                    "mfaEnabled": user.mfa_enabled
                 },
             }
 

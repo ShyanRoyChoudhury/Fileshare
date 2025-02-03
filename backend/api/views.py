@@ -8,13 +8,18 @@ from .serializers.SignUpSerializer import SignUpSerializer
 from .serializers.FileDownloadSerializer import FileDownloadSerializer
 from .serializers.FileDeleteSerializer import FileDeleteSerializer
 from .serializers.GenerateFileLinkSerializer import GenerateFileLinkSerializer
+from .serializers.VerifyMFASerializer import VerifyMFASerializer
 from .encryption.encrypt import EncryptionHandler
 from django.http import FileResponse
 from django.core.files.base import ContentFile
 import urllib.parse
+import pyotp
+import qrcode
+import io
+import base64
 
 import os
-from .models import Files, FileDownloadLink
+from .models import Files, FileDownloadLink, User
 import mimetypes
 from datetime import timedelta
 from django.utils import timezone
@@ -92,7 +97,8 @@ def signIn(request):
                     # 'message': 'Sign-in Failed',
                     'data': {
                         'requireRegistration': True,
-                        'status': "Success"
+                        'status': "Success",
+                        'user': result.get('user')
                     }
                 })
                 
@@ -203,7 +209,7 @@ def getList(request):
             }
         })
     
-
+ 
 @api_view(['GET'])
 @authentication_classes([])
 @permission_classes([AllowAny])
@@ -471,3 +477,88 @@ def Logout(request):
     )
 
     return response
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+@authentication_classes([])
+def profile_view(request):
+    try:
+        userEmail = request.userEmail
+        user_mfa = User.objects.filter(email=userEmail, deleted=False).first()
+        if not user_mfa.mfa_secret:
+            user_mfa.mfa_secret = pyotp.random_base32()
+            user_mfa.save()
+        
+        otp_uri = pyotp.totp.TOTP(user_mfa.mfa_secret).provisioning_uri(
+            name=user_mfa.email,
+            issuer_name="Fileshare"
+        )
+
+        qr = qrcode.make(otp_uri)
+        buffer = io.BytesIO()
+        qr.save(buffer, format='PNG')
+
+        buffer.seek(0)
+        qr_code = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        qr_code_data_uri = f"data:image/png;base64,{qr_code}"
+        return Response({
+            "data": {
+                'status': "Success",
+                'qr_code': qr_code_data_uri,
+                'email': user_mfa.email
+            }
+        })
+    
+    except Exception as e:
+        print("ERROR", e)
+        return Response({
+            'data': {
+                'message': "Internal Server Error",
+                'status': "Fail",
+            }
+        }, status=200)
+
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def verify_mfa(request):
+    try:
+        otp = request.data.get('otp')
+        userEmail = request.userEmail
+
+        serializer = VerifyMFASerializer(data={'otp': otp}, context={'userEmail': userEmail})
+
+        if serializer.is_valid():
+            success = serializer.verify_mfa()  # Now returns True/False
+            if success:
+                return Response({
+                    "data": {
+                        "status": "Success",
+                        "message": "User 2FA enabled successfully"
+                    }
+                }, status=200)
+            else:
+                return Response({
+                    "data": {
+                        "status": "Fail",
+                        "message": "Incorrect OTP"
+                    }
+                }, status=200)
+
+        return Response({
+            "data": {
+                "status": "Fail",
+                "message": "Invalid data"
+            }
+        }, status=200)
+
+    except Exception as e:
+        print("ERROR:", e)
+        return Response({
+            "data": {
+                "message": "Internal Server Error",
+                "status": "Fail"
+            }
+        }, status=200)
