@@ -44,8 +44,10 @@ def post(request):
         if serializer.is_valid():
             serializer.save()
             return Response({
-                'status': 200,
-                'message': 'files uploaded successfully'
+                'data': {
+                    'message': 'files uploaded successfully',
+                    'status': "Success"
+                }
             })
         
         return Response({
@@ -556,7 +558,9 @@ def profile_view(request):
             "data": {
                 'status': "Success",
                 'qr_code': qr_code_data_uri,
-                'email': user_mfa.email
+                'email': user_mfa.email,
+                'name': user_mfa.name,
+                'isMFAEnabled': user_mfa.mfa_enabled
             }
         })
     

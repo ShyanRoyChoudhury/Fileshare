@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Upload } from "lucide-react"
 import { uploadFile } from "../api/upload"
+import { toast } from "react-toastify"
 
 export default function FileUpload({ getList }: { getList: ()=> Promise<void> }) {
   const [file, setFile] = useState<FileList | null>(null)
@@ -19,13 +20,21 @@ export default function FileUpload({ getList }: { getList: ()=> Promise<void> })
     try{
         e.preventDefault();
         if(file){
-            await uploadFile(file);
+          const res = await uploadFile(file);
+          console.log('res', res)
+          if(res?.data?.status === "Success") {
+            toast.success("File Upload Successful")
             getList()
+            return
+          }
+          throw new Error("Error uploading")
         }
     }catch(error){
+      console.log("error", error)
         setError("File upload error")
+        toast.error("File Upload Failed")
+        setTimeout(()=>{setError(null), 5000})
     }
-
   }
 
   return (

@@ -13,8 +13,8 @@ export const uploadFile = async(files: FileList) => {
             },
             withCredentials: true,
         })
-        // console.log('response', response)
-        if(response.data.status === 'Success'){
+        console.log('response', response)
+        if(response.data.data.status === 'Success'){
             return response.data;
         }
         return null;

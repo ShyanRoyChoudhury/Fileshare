@@ -4,7 +4,6 @@ __pycache__/
 db.sqlite3
 *.swp
 
-service-account.json
 backend/api/service-account.json
 backend/media/
 certs/

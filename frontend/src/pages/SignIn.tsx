@@ -33,7 +33,14 @@ export default function SignInPage() {
         
         if (response?.data?.requireRegistration) {
           navigate('/signup');
+        }else{
+        console.log('response?.data?.mfaEnabled', response?.data?.mfaEnabled)
+        if(response?.data?.mfaEnabled){
+          navigate('/mfa')
+        }else{
+          navigate('/dashboard')
         }
+      }
     }
   }
 
@@ -65,10 +72,18 @@ export default function SignInPage() {
       }
   
       const response = await signInApi(idToken);
-      if (response?.data?.requireRegistration === false) {
-        navigate('/dashboard');
+      if (response?.data?.requireRegistration) {
+        navigate('/signup');
+      }else{
+        console.log('response?.data?.mfaEnabled', response?.data)
+        if(response?.data?.user?.mfaEnabled){
+          navigate('/mfa')
+        }else{
+          navigate('/dashboard')
+        }
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Sign in error:', error);
     } finally {
       setIsSigningIn(false);
