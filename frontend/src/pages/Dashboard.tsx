@@ -5,6 +5,9 @@ import FileUpload from "../components/Upload"
 import { getFileListApi } from "../api/getListApi"
 import FileListComponent from "../components/FileList"
 import Navbar from "../components/Navbar"
+import { useSelector } from "react-redux"
+import { RootState } from '../store';
+
 
 export interface UploadedFile {
   uid: string
@@ -15,7 +18,7 @@ export interface UploadedFile {
 
 export default function DashboardPage() {
   const [files, setFiles] = useState<UploadedFile[]>([])
-
+  const emailTest = useSelector((state: RootState) => state.user.email);
   async function getList(){
     const response = await getFileListApi()
     console.log('response in dasgb', response)
@@ -33,7 +36,7 @@ export default function DashboardPage() {
         <div className="flex justify-center">
             <FileUpload getList={getList}/>
         </div>
-
+      {emailTest}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="bg-white shadow-md rounded-lg overflow-hidden">

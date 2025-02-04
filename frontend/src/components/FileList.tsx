@@ -31,6 +31,7 @@ function FileListComponent({files, getList}: {
         console.log('clicked d')
         const response = await downloadFileApi(uid)
         console.log('response', response)
+        
     }
     const toDateTime = (dt: string) => {
         const date = new Date(dt);

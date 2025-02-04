@@ -6,6 +6,8 @@ import { doSignInUserWithEmailAndPassword, signInWithGoogle } from "../firebase/
 import { signInApi } from "../api/signInApi";
 import { useNavigate } from "react-router-dom";
 import { UserCredential } from "firebase/auth";
+import { useDispatch } from 'react-redux';
+import { setUserEmail } from "@/features/userSlice";
 
 export default function SignInPage() {
 
@@ -13,6 +15,8 @@ export default function SignInPage() {
   const [password, setPassword] = useState("")
 
   const [ isSigningIn, setIsSigningIn ] = useState(false)
+  const dispatch = useDispatch();
+
   const navigate = useNavigate();
 
   const onGoogleSignIn = async (_e: React.MouseEvent<HTMLDivElement>) => {
@@ -31,9 +35,13 @@ export default function SignInPage() {
         const idToken = await userCredential.user.getIdToken();
         const response = await signInApi(idToken);
         
+        
         if (response?.data?.requireRegistration) {
           navigate('/signup');
         }else{
+          console.log("response?.data?.user?.email", response?.data?.user?.email)
+          dispatch(setUserEmail(response?.data?.user?.email));
+
         console.log('response?.data?.mfaEnabled', response?.data?.mfaEnabled)
         if(response?.data?.mfaEnabled){
           navigate('/mfa')
@@ -72,10 +80,13 @@ export default function SignInPage() {
       }
   
       const response = await signInApi(idToken);
+      console.log('response?.data?.requireRegistration',  response?.data?.requireRegistration)
       if (response?.data?.requireRegistration) {
         navigate('/signup');
       }else{
         console.log('response?.data?.mfaEnabled', response?.data)
+        console.log("response?.data?.user?.email", response?.data?.user?.email)
+          dispatch(setUserEmail(response?.data?.user?.email));
         if(response?.data?.user?.mfaEnabled){
           navigate('/mfa')
         }else{
