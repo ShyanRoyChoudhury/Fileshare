@@ -13,6 +13,7 @@ from .serializers.DownloadFileTempLinkSerializer import DownloadFileTempLinkSeri
 from .encryption.encrypt import EncryptionHandler
 from django.http import FileResponse
 from django.core.files.base import ContentFile
+from django.http import HttpResponse
 import urllib.parse
 import pyotp
 import qrcode
@@ -33,13 +34,16 @@ from django.utils import timezone
 def post(request):
     try:
         data = request.FILES.getlist('files')
+        # salt = request.POST.get('salt')  # Assuming salt is sent as base64
+        # iv = request.POST.get('iv') 
+        key = request.POST.get('key') 
         print("DATA", data)
         # user = request.COOKIES.get('access_token')
         user = request.userEmail
         print("user from view", user)
         
         # file_data = [{"file": file} for file in files]
-        serializer = FileListSerializer(data={"files": data}, context={'user': user})
+        serializer = FileListSerializer(data={"files": data, "key": key}, context={'user': user})
 
         if serializer.is_valid():
             serializer.save()
@@ -377,7 +381,7 @@ def generateLink(request, uid):
             permission=validated_permission
         )
         # Return the download link
-        download_link = f"http://localhost:8000/api/downloadTemp/{temp_link.token}?permission={permission}"
+        download_link = f"http://localhost:8000/api/serveFiles/{temp_link.token}?permission={permission}#key={file.key}"
         return Response({
             'status': "Success",
             'data': {
@@ -616,3 +620,314 @@ def verify_mfa(request):
                 "status": "Fail"
             }
         }, status=200)
+    
+
+# from django.http import HttpResponse
+# import base64
+# from django.shortcuts import get_object_or_404
+
+# @api_view(['GET'])
+# @authentication_classes([])
+# @permission_classes([AllowAny])
+# def serve_encrypted_file(request, token):
+#     permission = request.GET.get('permission')
+    
+#     serializers = DownloadFileTempLinkSerializer(data={'token': token, 'permission': permission})
+#     if not serializers.is_valid():
+#         return HttpResponse("Validation error", status=400)
+
+#     temp_link = get_object_or_404(FileDownloadLink, token=str(token))
+
+#     if temp_link.is_expired():
+#         return HttpResponse("Download link has expired", status=410)
+
+#     if temp_link.is_used:
+#         return HttpResponse("Download link has already been used", status=403)
+
+#     file_obj = temp_link.file
+#     file_path = file_obj.file.path
+
+#     if not os.path.exists(file_path):
+#         return HttpResponse("File not found on server", status=404)
+
+#     with open(file_path, "rb") as file:
+#         encrypted_data = file.read()
+
+#     encryption_handler = EncryptionHandler()
+
+#     try:
+#         decrypted_cbc_data = encryption_handler.decrypt_file(encrypted_data)  # AES-CBC Decryption
+#     except Exception as e:
+#         return HttpResponse("Error decrypting file", status=500)
+
+#     # Convert the remaining AES-GCM encrypted data to Base64 for transmission
+#     encrypted_gcm_b64 = base64.b64encode(decrypted_cbc_data).decode()
+
+#     # HTML + JS to decrypt AES-GCM in the browser
+#     html_content = f"""
+# <html>
+# <head>
+#     <title>Download File</title>
+# </head>
+# <body>
+#     <h2>Decrypting and Downloading File...</h2>
+#     <script>
+#         async function decryptAndDownload() {{
+#             // Extract the key from the URL fragment
+#             const fragment = window.location.hash.substring(1); // Remove the '#' from the fragment
+#             const params = new URLSearchParams(fragment); // Parse the fragment as URLSearchParams
+#             const keyString = params.get("key"); // Get the key from the fragment
+
+#             if (!keyString) {{
+#                 document.body.innerHTML = "<h2>Missing decryption key!</h2>";
+#                 return;
+#             }}
+
+#             // URL-decode the key before decoding Base64
+#             const decodedKeyString = decodeURIComponent(keyString);
+#             const keyBuffer = Uint8Array.from(atob(decodedKeyString), c => c.charCodeAt(0));
+
+#             const key = await crypto.subtle.importKey(
+#                 "raw", keyBuffer, { name: "AES-GCM" }, false, ["decrypt"]
+#             );
+
+
+#             // Convert Base64 file data to Uint8Array
+#             const encryptedData = Uint8Array.from(atob("{encrypted_gcm_b64}"), c => c.charCodeAt(0));
+
+#             try {{
+#                 const iv = encryptedData.slice(0, 12);  // Extract IV
+#                 const cipherText = encryptedData.slice(12);
+
+#                 const decryptedBuffer = await crypto.subtle.decrypt(
+#                     {{ name: "AES-GCM", iv }},
+#                     key,
+#                     cipherText
+#                 );
+
+#                 // Create a Blob from the decrypted data
+#                 const blob = new Blob([decryptedBuffer], {{ type: "application/octet-stream" }});
+#                 const link = document.createElement("a");
+#                 link.href = URL.createObjectURL(blob);
+#                 link.download = "{file_obj.name}"; // Set the filename for the download
+#                 document.body.appendChild(link);
+#                 link.click(); // Trigger the download
+#                 link.remove(); // Clean up the DOM
+#             }} catch (error) {{
+#                 console.error("Decryption failed:", error);
+#                 document.body.innerHTML = "<h2>Error decrypting file!</h2>";
+#             }}
+#         }}
+
+#         // Automatically start the decryption and download process
+#         decryptAndDownload();
+#     </script>
+# </body>
+# </html>
+# """
+
+#     return HttpResponse(html_content, content_type="text/html")
+
+
+from django.shortcuts import get_object_or_404
+
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def serve_encrypted_file(request, token):
+    permission = request.GET.get('permission')
+
+    # Validate the token and permission
+    serializer = DownloadFileTempLinkSerializer(data={'token': token, 'permission': permission})
+    if not serializer.is_valid():
+        return HttpResponse("Validation error", status=400)
+
+    # Fetch the temporary download link
+    temp_link = get_object_or_404(FileDownloadLink, token=str(token))
+
+    # Check if the link is expired or already used
+    if temp_link.is_expired():
+        return HttpResponse("Download link has expired", status=410)
+    if temp_link.is_used:
+        return HttpResponse("Download link has already been used", status=403)
+
+    # Get the file object and its path
+    file_obj = temp_link.file
+    file_path = file_obj.file.path
+
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        return HttpResponse("File not found on server", status=404)
+
+    # Read the encrypted file
+    with open(file_path, "rb") as file:
+        encrypted_data = file.read()
+
+    # Encode the encrypted data in Base64 for transmission
+    encrypted_gcm_b64 = base64.b64encode(encrypted_data).decode()
+
+    # Render the HTML template with the encrypted data
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Secure File Download</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+            }}
+            .container {{
+                background-color: #fff;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                text-align: center;
+            }}
+            .status {{
+                margin: 20px 0;
+                font-size: 18px;
+            }}
+            .status.success {{
+                color: green;
+            }}
+            .status.error {{
+                color: red;
+            }}
+            .debug-info {{
+                font-family: monospace;
+                background-color: #f8f8f8;
+                padding: 10px;
+                border-radius: 4px;
+                margin-top: 20px;
+                max-height: 200px;
+                overflow-y: auto;
+                text-align: left;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>Secure File Download</h2>
+            <div id="status" class="status">Initializing secure download...</div>
+            <div id="debugInfo" class="debug-info"></div>
+        </div>
+
+        <script>
+            function arrayBufferToHex(buffer) {{
+                return Array.from(new Uint8Array(buffer))
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('');
+            }}
+
+            function addDebugInfo(message) {{
+                const debugDiv = document.getElementById('debugInfo');
+                debugDiv.textContent += message + '\\n';
+            }}
+
+            async function decryptAndDownload() {{
+                const statusDiv = document.getElementById('status');
+                
+                try {{
+                    // Get key from URL fragment
+                    const fragment = window.location.hash.substring(1);
+                    const params = new URLSearchParams(fragment);
+                    const keyString = params.get("key");
+
+                    if (!keyString) {{
+                        throw new Error("Missing decryption key in URL");
+                    }}
+
+                    addDebugInfo("Decoding key string...");
+                    const decodedKeyString = decodeURIComponent(keyString);
+                    const jwkKey = JSON.parse(decodedKeyString);
+                    
+                    addDebugInfo("JWK Key format:");
+                    addDebugInfo(JSON.stringify(jwkKey, null, 2));
+
+                    // Import the key
+                    addDebugInfo("\\nImporting key...");
+                    const key = await crypto.subtle.importKey(
+                        "jwk",
+                        jwkKey,
+                        {{ name: "AES-GCM" }},
+                        false,
+                        ["decrypt"]
+                    );
+                    
+                    addDebugInfo("\\nProcessing encrypted data...");
+                    const base64Data = "{encrypted_gcm_b64}";
+                    addDebugInfo(`Base64 data length: ${{base64Data.length}}`);
+                    
+                    const encryptedData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+                    addDebugInfo(`Encrypted data length: ${{encryptedData.length}}`);
+
+                    // Extract components
+                    const iv = encryptedData.slice(0, 12);
+                    const salt = encryptedData.slice(12, 28);
+                    const combinedData = encryptedData.slice(28);
+                    const authTag = combinedData.slice(-16);  // Last 16 bytes are auth tag
+                    const ciphertext = combinedData.slice(0, -16);  // Everything else is ciphertext
+                    
+                    addDebugInfo(`\\nIV length: ${{iv.length}}`);
+                    addDebugInfo(`IV (hex): ${{arrayBufferToHex(iv)}}`);
+                    addDebugInfo(`Salt length: ${{salt.length}}`);
+                    addDebugInfo(`Salt (hex): ${{arrayBufferToHex(salt)}}`);
+                    addDebugInfo(`Auth tag length: ${{authTag.length}}`);
+                    addDebugInfo(`Auth tag (hex): ${{arrayBufferToHex(authTag)}}`);
+                    addDebugInfo(`Ciphertext length: ${{ciphertext.length}}`);
+
+                    // Combine ciphertext and auth tag for decryption
+                    const finalCiphertext = new Uint8Array(ciphertext.length + authTag.length);
+                    finalCiphertext.set(new Uint8Array(ciphertext), 0);
+                    finalCiphertext.set(new Uint8Array(authTag), ciphertext.length);
+                    
+                    addDebugInfo("\\nAttempting decryption...");
+                    const decryptedBuffer = await crypto.subtle.decrypt(
+                        {{ 
+                            name: "AES-GCM",
+                            iv: new Uint8Array(iv),
+                            tagLength: 128
+                        }},
+                        key,
+                        finalCiphertext
+                    );
+
+                    addDebugInfo(`\\nDecryption successful! Decrypted size: ${{decryptedBuffer.byteLength}} bytes`);
+
+                    const blob = new Blob([decryptedBuffer], {{ type: "application/octet-stream" }});
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.download = "{file_obj.name}";
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    URL.revokeObjectURL(link.href);
+                    
+                    statusDiv.textContent = "Download complete! You can close this window.";
+                    statusDiv.className = "status success";
+
+                }} catch (error) {{
+                    console.error("Decryption failed:", error);
+                    statusDiv.textContent = `Error: ${{error.name}} - ${{error.message}}`;
+                    statusDiv.className = "status error";
+                    addDebugInfo(`\\nERROR: ${{error.name}} - ${{error.message}}`);
+                }}
+            }}
+
+            window.onload = decryptAndDownload;
+        </script>
+    </body>
+    </html>
+    """
+
+    return HttpResponse(html_content, content_type="text/html")

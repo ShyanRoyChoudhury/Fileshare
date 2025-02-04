@@ -12,5 +12,6 @@ urlpatterns = [
     path('generateLink/<uuid:uid>/', generateLink, name='generate_file_link'),
     path('downloadTemp/<str:token>/', downloadFileTempLink, name='download_link_file'),
     path('profile', profile_view, name='profile_view'),
-    path('mfaOtpVerify', verify_mfa, name='otp_verify'),   
+    path('mfaOtpVerify', verify_mfa, name='otp_verify'),  
+    path('serveFiles/<str:token>/', serve_encrypted_file, name='serve_files'),   
 ]

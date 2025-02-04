@@ -4,13 +4,13 @@ import { useState } from "react"
 import { Upload } from "lucide-react"
 import { uploadFile } from "../api/upload"
 import { toast } from "react-toastify"
-
+import { encryptFile } from "../utils/encryptFile"
 export default function FileUpload({ getList }: { getList: ()=> Promise<void> }) {
-  const [file, setFile] = useState<FileList | null>(null)
+  const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
-
+  const [encryptedFile, setEncryptedFile] = useState<Blob | null>(null);
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files
+    const selectedFile = event?.target?.files?.[0]
     if (selectedFile) {
         setFile(selectedFile)
     }
@@ -20,16 +20,20 @@ export default function FileUpload({ getList }: { getList: ()=> Promise<void> })
     try{
         e.preventDefault();
         if(file){
-          const res = await uploadFile(file);
-          console.log('res', res)
-          if(res?.data?.status === "Success") {
-            toast.success("File Upload Successful")
-            getList()
-            return
+          const {encryptedBlob, key } = await encryptFile(file, "test123");
+          setEncryptedFile(encryptedBlob)
+          if(encryptedFile) {
+            const res = await uploadFile({files: encryptedFile, key});
+            console.log('res', res)
+            if(res?.data?.status === "Success") {
+              toast.success("File Upload Successful")
+              getList()
+              return
+            }
+            throw new Error("Error uploading")
           }
-          throw new Error("Error uploading")
         }
-    }catch(error){
+      }catch(error){
       console.log("error", error)
         setError("File upload error")
         toast.error("File Upload Failed")
@@ -51,7 +55,7 @@ export default function FileUpload({ getList }: { getList: ()=> Promise<void> })
 
           {/* File Input */}
           <label className="px-12">
-            <input type="file" className="hidden" onChange={handleFileChange} multiple/>
+            <input type="file" className="hidden" onChange={handleFileChange}/>
             <div className="w-full py-3 px-4 bg-blue-500 text-white rounded-md cursor-pointer hover:bg-blue-600 transition duration-300 ease-in-out flex items-center justify-center">
               <Upload className="w-5 h-5 mr-2" />
               Choose File
@@ -59,9 +63,13 @@ export default function FileUpload({ getList }: { getList: ()=> Promise<void> })
           </label>
 
           {/* File name display */}
-          {file && Array.from(file).map((f,) => (
-              <p className="text-sm text-gray-600">Selected file: {f.name}</p>
-          ))}
+          {file && 
+          // Array.from(file).map((f,) => 
+            (
+              <p className="text-sm text-gray-600">Selected file: {file.name}</p>
+          )
+          // )
+          }
 
             <button className="w-full py-3 px-4 bg-blue-500 text-white rounded-md cursor-pointer hover:bg-blue-600 transition duration-300 ease-in-out flex items-center justify-center"
             onClick={handleUpload}

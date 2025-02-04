@@ -1,5 +1,6 @@
 import axios from "axios";
 import { BASE_URL } from "../config";
+import { decryptFile } from "../utils/decryptFile";
 
 export const downloadFileApi = async (uid: string) => {
     try {
@@ -7,6 +8,9 @@ export const downloadFileApi = async (uid: string) => {
             responseType: "blob",  // Ensure binary data handling
             withCredentials: true,
         });
+
+        const encrptedData = response.data;
+        const decryptedBlob = await decryptFile(encrptedData, "test123")
 
         // Extract filename from Content-Disposition header
         const contentDisposition = response.headers["content-disposition"];
@@ -37,7 +41,8 @@ export const downloadFileApi = async (uid: string) => {
         }
 
         // Create a Blob and trigger the file download
-        const url = window.URL.createObjectURL(new Blob([response.data], { type: mimeType }));
+        // const url = window.URL.createObjectURL(new Blob([response.data], { type: mimeType }));
+        const url = window.URL.createObjectURL(decryptedBlob);
         const link = document.createElement("a");
         link.href = url;
         link.setAttribute("download", filename);

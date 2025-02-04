@@ -36,7 +36,7 @@ DEBUG = True
 # bool(os.environ.get("DEBUG", default=0))
  
 # ALLOWED_HOSTS = ['localhost']
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', "172.18.0.1"]
 # os.environ.get("DJANGO_ALLOWED_HOSTS","127.0.0.1").split(",")
 
 # Add these settings
