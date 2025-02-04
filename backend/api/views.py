@@ -9,6 +9,7 @@ from .serializers.FileDownloadSerializer import FileDownloadSerializer
 from .serializers.FileDeleteSerializer import FileDeleteSerializer
 from .serializers.GenerateFileLinkSerializer import GenerateFileLinkSerializer
 from .serializers.VerifyMFASerializer import VerifyMFASerializer
+from .serializers.DownloadFileTempLinkSerializer import DownloadFileTempLinkSerializer
 from .encryption.encrypt import EncryptionHandler
 from django.http import FileResponse
 from django.core.files.base import ContentFile
@@ -340,12 +341,13 @@ def deleteFile(request, uid):
         })
     
 
-@api_view(['GET'])
+@api_view(['POST'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def generateLink(request, uid):
     try:
-        serializers = GenerateFileLinkSerializer(data={'uid':str(uid)})
+        permission = request.GET.get('permission')
+        serializers = GenerateFileLinkSerializer(data={'uid':str(uid), 'permission': permission})
 
         if not serializers.is_valid():
             return Response({
@@ -365,17 +367,21 @@ def generateLink(request, uid):
             })
 
         expires_at = timezone.now() + timedelta(hours=24)
+        validated_permission = serializers.validate_permission('permission')
+        print("validated_permission", validated_permission)
         temp_link = FileDownloadLink.objects.create(
             file=file,
-            expires_at=expires_at
+            expires_at=expires_at,
+            permission=validated_permission
         )
         # Return the download link
-        download_link = f"http://localhost:8000/api/downloadTemp/{temp_link.token}/"
+        download_link = f"http://localhost:8000/api/downloadTemp/{temp_link.token}?permission={permission}"
         return Response({
             'status': "Success",
             'data': {
                 'download_link': download_link,
-                'expires_at': expires_at
+                'expires_at': expires_at,
+                'permission': permission
             }
         })
     except Exception as e:
@@ -388,17 +394,21 @@ def generateLink(request, uid):
         }, status=500)
     
 
-
 @api_view(['GET'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def downloadFileTempLink(request, token):
     try:
-        # Get the temporary download link
-        print("temp_link", token)
+        permission = request.GET.get('permission')
+
+        serializers = DownloadFileTempLinkSerializer(data={'token': token, 'permission': permission})
+        if not serializers.is_valid():
+            return Response({
+                'status': "Fail",
+                'message': 'validation error'
+            })
+
         temp_link = FileDownloadLink.objects.filter(token=str(token)).first()
-        print("temp_link", temp_link)
-        print("temp_link_test")
         if not temp_link:
             return Response({
                 'status': "Fail",
@@ -410,51 +420,91 @@ def downloadFileTempLink(request, token):
             return Response({
                 'status': "Fail",
                 'message': "Download link has expired"
-            }, status=410)  # 410 Gone
+            }, status=410)
 
         # Check if the link has already been used
         if temp_link.is_used:
             return Response({
                 'status': "Fail",
                 'message': "Download link has already been used"
-            }, status=403)  # 403 Forbidden
+            }, status=403)
 
-        # Get the file
         file_obj = temp_link.file
         filepath = file_obj.file.path
+
         if not os.path.exists(filepath):
             return Response({
                 'status': "Fail",
                 'message': "File not found on server"
             }, status=404)
 
-        # Serve the file
+        # Read the entire file content first
+        with open(filepath, 'rb') as file:
+            file_content = file.read()
+
+        # If you have encryption, handle it here similar to the working API
+        decryption_handler = EncryptionHandler()
+        try:
+            file_content = decryption_handler.decrypt_file(file_content)
+        except Exception as e:
+            print("Decryption error:", e)
+            return Response({
+                'status': "Fail",
+                'message': "Error decrypting file"
+            })
+
+        # Create a ContentFile from the content
+        content_file = ContentFile(file_content)
+
+        # Create response with the content file
         response = FileResponse(
-            open(filepath, 'rb'),
+            content_file,
             as_attachment=True,
             filename=file_obj.name
         )
+
+        # Set the proper headers
         mime_type, _ = mimetypes.guess_type(filepath)
         response['Content-Type'] = mime_type if mime_type else "application/octet-stream"
+        
         safe_filename = urllib.parse.quote(file_obj.name)
         response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
-        del response['X-Sendfile']
+        
+        response['Content-Length'] = len(file_content)
 
-        # Mark the link as used
+        if 'X-Sendfile' in response:
+            del response['X-Sendfile']
+
+        # Mark the link as used before sending
         temp_link.mark_as_used()
+        print("temp_link.permission == 2", temp_link.permission)
+        if temp_link.permission == 1:
+            try:
+                print("inside delete")
+                # First ensure the file handle is closed
+                content_file.close()
+                
+                # Delete the file from filesystem
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                    
+                # Optionally, update the file_obj to mark it as deleted in the database
+                file_obj.deleted = True  # Assuming you have a deleted field
+                file_obj.save()
+                
+                print(f"File deleted successfully: {filepath}")
+            except Exception as e:
+                print(f"Error deleting file: {e}")
 
         return response
+
     except Exception as e:
-        print("ERROR", e)
+        print("ERROR:", e)
         return Response({
-            'data': {
-                'message': "Internal Server Error",
-                'status': "Fail",
-            }
+            'status': "Fail",
+            'message': "Internal Server Error"
         }, status=500)
     
-
-
 @api_view(['GET'])
 @permission_classes([AllowAny])
 @authentication_classes([])

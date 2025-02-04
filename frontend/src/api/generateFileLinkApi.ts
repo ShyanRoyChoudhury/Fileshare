@@ -3,9 +3,10 @@ import { BASE_URL } from "../config"
 
 export const generateFileLinkApi = async(uid:string) => {
     try{
-        const response = await axios.get(`${BASE_URL}/generateLink/${uid}`, {
+        const response = await axios.post(`${BASE_URL}/generateLink/${uid}/?permission=Write`, {}, {
             headers: {
                 "Content-Type": "application/json",
+                // "Cache-Control": "no-cache, no-store, must-revalidate",
             },
             withCredentials: true,
         })

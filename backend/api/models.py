@@ -54,7 +54,7 @@ class FileDownloadLink(models.Model):
     expires_at = models.DateTimeField()
     is_used = models.BooleanField(default=False)
     file = models.ForeignKey(Files, on_delete=models.CASCADE)
-    # permission = models.IntegerField(choices=PermissionTypes.choices(), default=PermissionTypes.Read)
+    permission = models.IntegerField(choices=PermissionTypes.choices(), default=PermissionTypes.Read)
 
     def generate_token(self):
         return get_random_string(length=64)
