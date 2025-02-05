@@ -7,7 +7,9 @@ class GenerateFileLinkSerializer(serializers.Serializer):
     permission = serializers.ChoiceField(choices=['Read', 'Write'])
 
     def validate_permission(self, value):
-        # Convert string permission to enum value
+        """ 
+            Convert string permission to enum value
+        """
         try:
             print('PermissionTypes[value].value', PermissionTypes[value].value)
             return PermissionTypes[value].value

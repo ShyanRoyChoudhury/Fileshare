@@ -53,7 +53,7 @@ class SignInSerializer(serializers.Serializer):
             email = validated_user.get('email')
             if not email:
                 # logger.error("No email found in Firebase token")
-                raise ValueError("Email not found in Firebase token")
+                return {"user":None}
 
             try:
                 user = User.objects.get(email=email, deleted=False)

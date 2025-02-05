@@ -45,9 +45,7 @@ class Files(models.Model):
     created_at = models.DateTimeField(auto_now=True)
     deleted = models.BooleanField(default=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    # salt = models.BinaryField(max_length=16, null=True, blank=True)  # 16 bytes standard for PBKDF2
-    # iv = models.BinaryField(max_length=12, null=True, blank=True)    # 12 bytes for AES-GCM
-    key = models.CharField(max_length=200, null=True, blank=True)
+    password = models.CharField(max_length=200, blank=True, null=True)
 
 
 class FileDownloadLink(models.Model):

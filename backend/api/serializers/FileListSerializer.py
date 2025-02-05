@@ -10,31 +10,15 @@ class FileListSerializer(serializers.Serializer):
     )
     # salt = serializers.CharField()
     # iv = serializers.CharField()
-    key = serializers.CharField()
+    password = serializers.CharField()
 
-
-    # def validate_salt(self, value):
-    #     try:
-    #         salt = base64.b64decode(value)
-    #         if len(salt) != 16:
-    #             raise serializers.ValidationError("Invalid salt length")
-    #         return value
-    #     except Exception:
-    #         raise serializers.ValidationError("Invalid salt encoding")
-
-    # def validate_iv(self, value):
-    #     try:
-    #         iv = base64.b64decode(value)
-    #         if len(iv) != 12:33
-    #             raise serializers.ValidationError("Invalid IV length")
-    #         return value
-    #     except Exception:
-    #         raise serializers.ValidationError("Invalid IV encoding")
 
     def create(self, validated_date):
+        """
+        function check the email provided & stores the file based on user
+        """ 
         user = self.context.get('user')
-        key = validated_date.get('key')
-        print("user from serializer", user.email)
+        password = validated_date.get('password')
         try:
             db_user = User.objects.get(email=user.email)
             print("Database user:", db_user)
@@ -53,6 +37,6 @@ class FileListSerializer(serializers.Serializer):
             print("Encrypted file content:", encrypted_file)
 
             print("encrypted_file", encrypted_file)
-            files_obj = Files.objects.create(file = encrypted_file, user=db_user, name = file.name, deleted = False, key= key)
+            files_obj = Files.objects.create(file = encrypted_file, user=db_user, name = file.name, deleted = False, password= password)
             files_objs.append(files_obj)
         return files_objs

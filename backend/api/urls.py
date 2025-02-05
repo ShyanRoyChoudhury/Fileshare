@@ -3,10 +3,10 @@ from .views import *
 
 urlpatterns = [
     path('upload/', post),
-    path('signin', signIn),
-    path('signUp', signUp),
-    path('logout', Logout),
-    path('getList', getList),
+    path('signin', signIn, name='signIn'), 
+    path('signUp', signUp, name='signUp'),
+    path('logout', Logout, name = 'Logout'),
+    path('getList', getList, name = 'getList'),
     path('download/<uuid:uid>/', downloadFile, name='download_file'),
     path('delete/<uuid:uid>/', deleteFile, name='delete_file'),
     path('generateLink/<uuid:uid>/', generateLink, name='generate_file_link'),

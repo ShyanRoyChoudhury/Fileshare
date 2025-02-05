@@ -6,6 +6,9 @@ class VerifyMFASerializer(serializers.Serializer):
     otp = serializers.CharField(max_length=6, allow_blank=False)
 
     def verify_mfa(self):
+        """
+        function to verify otp from authenticator app
+        """
         try:
             userEmail = self.context.get('userEmail')  # Fixed incorrect variable access
             user = User.objects.filter(email=userEmail).first()
