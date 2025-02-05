@@ -9,9 +9,6 @@ export const decryptFile = async (encryptedBlob: Blob, password: string) => {
     const ciphertext = encryptedData.slice(28);
   
     const key = await deriveKey(password, new Uint8Array(salt));
-    console.log("key", key)
-    console.log("cipherText", ciphertext)
-    console.log("salt", salt)
     
     const decryptedData = await crypto.subtle.decrypt(
       { name: "AES-GCM", iv: new Uint8Array(iv) },

@@ -1,22 +1,10 @@
-import React, { useState } from 'react'
-import { mfaOtpVerifyApi } from "../api/mfaOtpVerifyApi"
-import { toast } from "react-toastify"
-import { useNavigate } from 'react-router-dom'
-import OTPInput from 'react-otp-input'
-import OTPInputComponent from './OTPInput'
-// import OTPInput from 'otp-input-react'
+
 type Props = {
-    email: string | null,
     qrCode: any
 
 }
 
-function MfaQr({email, qrCode}: Props) {
-
-    
-    // const handleChange = (e:React.ChangeEvent<HTMLInputElement>) => {
-    //   setOtp(e.target.value)
-    // }
+function MfaQr({qrCode}: Props) {
 
   return (
         <div className='p-6'>

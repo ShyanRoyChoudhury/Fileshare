@@ -1,20 +1,17 @@
 import axios from "axios"
 import { BASE_URL } from "../config"
-import { base64EncodeArrayBuffer } from "../utils/encodeArrayBuffer";
 
 
-export const uploadFile = async({files, key}: {
+export const uploadFile = async({files, password}: {
     files: Blob;
-    // salt: Uint8Array;
-    // iv: Uint8Array
-    key: CryptoKey
+    password: string;
 }) => {
     try {
-        const exportedKey = await crypto.subtle.exportKey('jwk', key);
+        // const exportedKey = await crypto.subtle.exportKey('jwk', key);
 
         const formData = new FormData();
         formData.append("files", files);
-        formData.append("key", JSON.stringify(exportedKey));
+        formData.append("password", password);
 
         // Send base64 encoded salt and IV
         // formData.append("salt", base64EncodeArrayBuffer(salt));

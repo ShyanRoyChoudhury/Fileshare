@@ -7,7 +7,7 @@ import { signInApi } from "../api/signInApi";
 import { useNavigate } from "react-router-dom";
 import { UserCredential } from "firebase/auth";
 import { useDispatch } from 'react-redux';
-import { setUserEmail, setUserMFA } from "@/features/userSlice";
+import { setUserEmail, setUserMFA } from "../features/userSlice";
 import { z } from 'zod'
 import { toast } from "react-toastify";
 export default function SignInPage() {

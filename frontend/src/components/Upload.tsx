@@ -5,6 +5,7 @@ import { Upload } from "lucide-react"
 import { uploadFile } from "../api/upload"
 import { toast } from "react-toastify"
 import { encryptFile } from "../utils/encryptFile"
+// import { generateRandomPassword } from "@/utils/generatePassword"
 export default function FileUpload({ getList }: { getList: ()=> Promise<void> }) {
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -20,10 +21,12 @@ export default function FileUpload({ getList }: { getList: ()=> Promise<void> })
     try{
         e.preventDefault();
         if(file){
-          const {encryptedBlob, key } = await encryptFile(file, "test123");
+          const password = "test123"
+          // generateRandomPassword()
+          const {encryptedBlob } = await encryptFile(file, password);
           setEncryptedFile(encryptedBlob)
           if(encryptedFile) {
-            const res = await uploadFile({files: encryptedFile, key});
+            const res = await uploadFile({files: encryptedFile, password});
             console.log('res', res)
             if(res?.data?.status === "Success") {
               toast.success("File Upload Successful")

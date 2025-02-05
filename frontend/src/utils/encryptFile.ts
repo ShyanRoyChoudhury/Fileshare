@@ -11,11 +11,10 @@ export const encryptFile = async (file: File, password: string) => {
       key,
       fileData
     );
-    console.log('key', key)
     // Combine IV, salt, and ciphertext into a single Blob
     const encryptedBlob = new Blob([iv, salt, new Uint8Array(ciphertext)], {
       type: "application/octet-stream",
     });
   
-    return {encryptedBlob, key };
+    return {encryptedBlob };
   };

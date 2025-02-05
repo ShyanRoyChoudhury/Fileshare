@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { getProfileApi } from "../api/getProfileApi"
-import OTPInputComponent from "@/components/OTPInput"
+import OTPInputComponent from "../components/OTPInput"
 
 export default function MFAPage() {
   const [email, setEmail] = useState("")

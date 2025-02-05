@@ -1,4 +1,4 @@
-import { mfaOtpVerifyApi } from '@/api/mfaOtpVerifyApi'
+import { mfaOtpVerifyApi } from '../api/mfaOtpVerifyApi'
 import React from 'react'
 import OTPInput from 'react-otp-input';
 import { useNavigate } from 'react-router-dom'

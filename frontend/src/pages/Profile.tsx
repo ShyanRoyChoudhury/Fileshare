@@ -2,12 +2,12 @@ import { useEffect, useState } from "react"
 import { getProfileApi } from "../api/getProfileApi"
 import { useSelector } from "react-redux"
 import { RootState } from "../store"
-import MfaQr from "@/components/MfaQr"
-import OTPInputComponent from "@/components/OTPInput"
+import MfaQr from "../components/MfaQr"
+import OTPInputComponent from "../components/OTPInput"
 
 export default function ProfilePage() {
   const [qrCode, setQrCode] = useState(null)
-  const [email, setEmail] = useState<string | null>(null)
+  const [_email, setEmail] = useState<string | null>(null)
   const [otp, setOtp] = useState<string | undefined>(undefined)
   const [_name, setName] = useState<string | null>(null)
   async function getProfile(){
@@ -31,7 +31,7 @@ export default function ProfilePage() {
             <div className="bg-white p-6">
             
             Email: {emailTest}
-            <MfaQr email={email} qrCode={qrCode}/>
+            <MfaQr qrCode={qrCode}/>
             <OTPInputComponent otp={otp} setOtp={setOtp} />
         </div>
         </div>
