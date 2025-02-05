@@ -1,5 +1,6 @@
 import axios from "axios"
 import { BASE_URL } from "../config"
+import { toast } from "react-toastify"
 
 export const deleteFileApi = async(uid:string) => {
     try{
@@ -10,11 +11,13 @@ export const deleteFileApi = async(uid:string) => {
             withCredentials: true,
         })
         console.log('response in delete file api', response)
-        if(response.data.status === 'Success'){
+        if(response?.data?.data?.status === 'Success'){
+            toast.success("File Deleted Successfully")
             return response.data;
         }
+        toast.error("File Delete Unsuccessfull")
         return null;
     }catch(error){
-        console.error("upload failed")
+        toast.error("File Delete Unsuccessfull")
     }
 }

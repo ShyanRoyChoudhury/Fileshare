@@ -2,11 +2,13 @@ import { RootState } from '../store';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface UserState {
-    email: string | null
+    email: string | null,
+    mfaEnabled: boolean
 }
 
 const initialState: UserState = {
-    email: null
+    email: null,
+    mfaEnabled: false
   };
   
 
@@ -19,12 +21,15 @@ export const userSlice = createSlice({
       },
     clearUserEmail: (state) => {
       state.email = null;
-    }
+    },
+    setUserMFA: (state, action: PayloadAction<boolean>) => {
+      state.mfaEnabled = action.payload;
+    },
   }
 });
 
 // Export actions for dispatch
-export const { setUserEmail, clearUserEmail } = userSlice.actions;
+export const { setUserEmail, clearUserEmail, setUserMFA } = userSlice.actions;
 
 // Export reducer for configureStore
 export default userSlice.reducer;

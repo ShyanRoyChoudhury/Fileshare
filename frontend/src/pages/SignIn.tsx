@@ -7,8 +7,9 @@ import { signInApi } from "../api/signInApi";
 import { useNavigate } from "react-router-dom";
 import { UserCredential } from "firebase/auth";
 import { useDispatch } from 'react-redux';
-import { setUserEmail } from "@/features/userSlice";
-
+import { setUserEmail, setUserMFA } from "@/features/userSlice";
+import { z } from 'zod'
+import { toast } from "react-toastify";
 export default function SignInPage() {
 
   const [email, setEmail] = useState("")
@@ -23,14 +24,6 @@ export default function SignInPage() {
     // e.preventDefault();
     if(!isSigningIn){
         setIsSigningIn(true);
-        // signInWithGoogle().then(async res=>{
-        //     const response = await signInApi(res._tokenResponse.idToken)
-        //     if(response?.data?.requireRegistration){
-        //       navigate('/signup')
-        //     }
-        // }).catch(err => {
-        //     setIsSigningIn(false)
-        // })
         const userCredential: UserCredential = await signInWithGoogle();
         const idToken = await userCredential.user.getIdToken();
         const response = await signInApi(idToken);
@@ -52,54 +45,60 @@ export default function SignInPage() {
     }
   }
 
-
-  // const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-  //   event.preventDefault()
-  //   // Here you would typically handle the sign-in logic
-  //   console.log("Sign in attempted with:", { email, password })
-  //   const fbResponse = await doSignInUserWithEmailAndPassword(email, password)
-  //   if(!fbResponse?._tokenResponse?.idToken){
-
-  //   }
-  //   const response = await signInApi(fbResponse?._tokenResponse?.idToken)
-  //   if(!response?.data?.requireRegistration){
-  //     navigate('/dashboard')
-  //   }
-  // }
-
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    
     try {
-      setIsSigningIn(true);
-      const userCredential = await doSignInUserWithEmailAndPassword(email, password);
-      const idToken = await userCredential.user.getIdToken();
+      event.preventDefault();
+  
+      // Define the schema for validation
+      const schema = z.object({
+        email: z.string().email("Invalid email address"),
+        password: z.string().min(6, "Password must be at least 8 characters long"),
+      });
+  
+      // Validate the input data
+      const parsedInput = schema.safeParse({ email, password });
       
+      if (!parsedInput.success) {
+        console.log('parsedInput.error', parsedInput.error)
+        // Handle validation errors
+        toast.warn("Invalid Email/password");
+        return; // Stop further execution if validation fails
+      }
+  
+      setIsSigningIn(true);
+  
+      // Proceed with Firebase authentication
+      const userCredential = await doSignInUserWithEmailAndPassword(email, password);
+      console.log('userCredential', userCredential)
+      const idToken = await userCredential.user.getIdToken();
+  
       if (!idToken) {
         throw new Error('Failed to get authentication token');
       }
   
+      // Call the sign-in API
       const response = await signInApi(idToken);
-      console.log('response?.data?.requireRegistration',  response?.data?.requireRegistration)
+  
       if (response?.data?.requireRegistration) {
         navigate('/signup');
-      }else{
-        console.log('response?.data?.mfaEnabled', response?.data)
-        console.log("response?.data?.user?.email", response?.data?.user?.email)
-          dispatch(setUserEmail(response?.data?.user?.email));
-        if(response?.data?.user?.mfaEnabled){
-          navigate('/mfa')
-        }else{
-          navigate('/dashboard')
+      } else {
+        dispatch(setUserEmail(response?.data?.user?.email));
+        console.log('response?.data?.user?.isMFAEnabled', response?.data?.user?.mfaEnabled)
+        dispatch(setUserMFA(response?.data?.user?.mfaEnabled));
+        toast.success("Signin Successful")
+        if (response?.data?.user?.mfaEnabled) {
+          navigate('/mfa');
+        } else {
+          navigate('/dashboard');
         }
       }
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Sign in error:', error);
+      toast.error('Sign in failed. Please try again.');
     } finally {
       setIsSigningIn(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center">
@@ -148,9 +147,9 @@ export default function SignInPage() {
           {/* Sign Up Link */}
           <p className="text-sm text-gray-600">
             Don't have an account?{" "}
-            {/* <Link href="/signup" className="text-blue-500 hover:underline">
+            <a href="/signup" className="text-blue-500 hover:underline">
               Sign up
-            </Link> */}
+            </a>
           </p>
         </div>
       </div>

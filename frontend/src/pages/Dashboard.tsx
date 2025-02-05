@@ -4,9 +4,9 @@ import { useEffect, useState } from "react"
 import FileUpload from "../components/Upload"
 import { getFileListApi } from "../api/getListApi"
 import FileListComponent from "../components/FileList"
-import Navbar from "../components/Navbar"
 import { useSelector } from "react-redux"
 import { RootState } from '../store';
+import { useNavigate } from "react-router-dom"
 
 
 export interface UploadedFile {
@@ -18,7 +18,9 @@ export interface UploadedFile {
 
 export default function DashboardPage() {
   const [files, setFiles] = useState<UploadedFile[]>([])
-  const emailTest = useSelector((state: RootState) => state.user.email);
+  const email = useSelector((state: RootState) => state.user.email);
+  const isMFAEnabled = useSelector((state: RootState) => state.user?.mfaEnabled);
+  console.log('isMFAEnabled', isMFAEnabled)
   async function getList(){
     const response = await getFileListApi()
     console.log('response in dasgb', response)
@@ -28,15 +30,27 @@ export default function DashboardPage() {
   useEffect(()=> {
     getList()
   }, [])
-
+  const navigate = useNavigate();
+  const handleEnableMFA = () => {
+    navigate('/profile')
+  }
   return (
-    <div className="min-h-screen">
-        <Navbar />
+    <div className="min-h-screen min-w-screen">
         
-        <div className="flex justify-center">
+        <div className="text-center text-white font-xl text-lg">
+          Welcome {email}
+        </div>
+        {!isMFAEnabled && (
+          <div>
+              <p className="text-white text-sm font-light">MFA is not enabled for your account.</p>
+              <button className="px-3.5 py-1.5 bg-gray-400 hover:bg-gray-600 rounded-md"
+              onClick={handleEnableMFA}
+              >Set it up!</button>
+          </div>
+        )}
+        <div className="flex justify-center mt-16">
             <FileUpload getList={getList}/>
         </div>
-      {emailTest}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="bg-white shadow-md rounded-lg overflow-hidden">

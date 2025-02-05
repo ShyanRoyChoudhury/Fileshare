@@ -9,6 +9,7 @@ import VerifyEmail from './pages/VerifyEmail'
 import ProfilePage from './pages/Profile'
 import { ToastContainer } from 'react-toastify'
 import MFAPage from './pages/MFA'
+import Navbar from './components/Navbar'
 
 function App() {
 
@@ -20,9 +21,10 @@ function App() {
         theme="dark"
         hideProgressBar={true}
       />
+      <Navbar />
         <Routes>
           {/* <Route path='/upload' element={<Upload />}/> */}
-          <Route path='/signin' element={<SignInPage />}/>
+          <Route path='/' element={<SignInPage />}/>
           <Route path='/signup' element={<SignUpPage />}/>
           <Route path='/dashboard' element={<DashboardPage />}/>
           <Route path='/verifyEmail' element={<VerifyEmail />}/>

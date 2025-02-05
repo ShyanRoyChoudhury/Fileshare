@@ -10,6 +10,7 @@ function FileListComponent({files, getList}: {
     getList: () => Promise<void>
 }) {
     const [copiedFile, setCopiedFile] = useState<string | null>(null);
+    
     const deleteFile = async (uid: string) => {
         const response = await deleteFileApi(uid)
         console.log('response', response)
