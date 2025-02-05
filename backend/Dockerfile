@@ -8,5 +8,7 @@ RUN pip install --upgrade pip
 COPY . /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY certs /app/certs/
+
 EXPOSE 8443
 CMD ["gunicorn", "--certfile=certs/server.crt", "--keyfile=certs/server.key", "--bind", "0.0.0.0:8443", "backend.wsgi:application"]

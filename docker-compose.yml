@@ -1,28 +1,26 @@
-services:
-  frontend:
-    build: 
-      context: ./frontend
-    ports:
-      - "443:443"
-    volumes:
-      - ./certs:/etc/nginx/certs:ro
-    depends_on:
-      - backend
-    networks:
-      - app-network  # Added this
 
+
+services:
   backend:
-    build:
-      context: ./backend
+    build: ./backend
+    container_name: fileshare-backend
+    networks:
+      - fileshare_network
+    volumes:
+      - ./certs:/app/certs
     ports:
       - "8443:8443"
-    volumes:
-      - ./certs:/app/certs:ro
-    environment:
-      - DJANGO_SETTINGS_MODULE=backend.settings
+
+  frontend:
+    build: ./frontend
+    container_name: fileshare-frontend
     networks:
-      - app-network
+      - fileshare_network
+    volumes:
+      - ./certs:/etc/nginx/certs
+    ports:
+      - "443:443"
 
 networks:
-  app-network:
+  fileshare_network:
     driver: bridge
