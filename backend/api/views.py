@@ -727,9 +727,11 @@ def serve_encrypted_file(request, token):
 
         if temp_link.is_expired():
             return HttpResponse("Download link has expired", status=410)
-
+        print("temp_link.is_expired", temp_link.is_used)
         if temp_link.is_used:
             return HttpResponse("Download link has already been used", status=403)
+        temp_link.mark_as_used()
+        print("temp_link.is_expired", temp_link.is_used)
         print("token", token)
         temp_link = FileDownloadLink.objects.filter(token=token).first()
         file_obj = temp_link.file
