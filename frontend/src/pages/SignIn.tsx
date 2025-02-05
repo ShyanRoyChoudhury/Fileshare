@@ -34,6 +34,7 @@ export default function SignInPage() {
         }else{
           console.log("response?.data?.user?.email", response?.data?.user?.email)
           dispatch(setUserEmail(response?.data?.user?.email));
+          dispatch(setUserMFA(response?.data?.user?.mfaEnabled));
 
         console.log('response?.data?.mfaEnabled', response?.data?.mfaEnabled)
         if(response?.data?.mfaEnabled){

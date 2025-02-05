@@ -444,7 +444,7 @@ def generateLink(request, uid):
             permission=validated_permission
         )
         # Return the download link
-        download_link = f"https://localhost:8443/api/serveFiles/{temp_link.token}?permission={permission}"
+        download_link = f"http://localhost:8000/api/serveFiles/{temp_link.token}?permission={permission}"
         return Response({
             'status': "Success",
             'data': {
@@ -723,13 +723,13 @@ def serve_encrypted_file(request, token):
         if not serializers.is_valid():
             return HttpResponse("Validation error", status=400)
 
-        # temp_link = get_object_or_404(FileDownloadLink, token=str(token))
+        temp_link = get_object_or_404(FileDownloadLink, token=str(token))
 
-        # if temp_link.is_expired():
-        #     return HttpResponse("Download link has expired", status=410)
+        if temp_link.is_expired():
+            return HttpResponse("Download link has expired", status=410)
 
-        # if temp_link.is_used:
-        #     return HttpResponse("Download link has already been used", status=403)
+        if temp_link.is_used:
+            return HttpResponse("Download link has already been used", status=403)
         print("token", token)
         temp_link = FileDownloadLink.objects.filter(token=token).first()
         file_obj = temp_link.file

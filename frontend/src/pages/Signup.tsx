@@ -2,32 +2,20 @@
 
 import { useState } from "react"
 import { LogIn, Mail, Lock } from "lucide-react"
-import { signInWithGoogle, doSignUpUserWithEmailAndPassword } from "../firebase/auth";
-import { signInApi } from "../api/signInApi";
+import { doSignUpUserWithEmailAndPassword } from "../firebase/auth";
+// import { signInApi } from "../api/signInApi";
 import { useNavigate } from "react-router-dom";
 import { signUpApi } from "../api/signUpApi";
-import { UserCredential } from "firebase/auth";
+// import { UserCredential } from "firebase/auth";
 
 export default function SignUpPage() {
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
-  const [ isSigningIn, setIsSigningIn ] = useState(false)
+  const [ _isSigningIn, setIsSigningIn ] = useState(false)
   const navigate = useNavigate();
 
-  const onGoogleSignIn = async (_e: React.MouseEvent<HTMLDivElement>) => {
-    if(!isSigningIn){
-        setIsSigningIn(true);
-        const userCredential: UserCredential = await signInWithGoogle();
-        const idToken = await userCredential.user.getIdToken();
-        const response = await signInApi(idToken);
-        
-        if (response?.data?.requireRegistration) {
-          navigate('/signup');
-        }
-    }
-  }
 
 const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -94,16 +82,16 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
               className="w-full py-3 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-300 ease-in-out flex items-center justify-center"
             >
               <LogIn className="w-5 h-5 mr-2" />
-              Sign In
+              Sign Up
             </button>
           </form>
-            <div onClick={onGoogleSignIn}>Sign In google</div>
+            {/* <div onClick={onGoogleSignIn}>Sign In google</div> */}
           {/* Sign Up Link */}
           <p className="text-sm text-gray-600">
-            Don't have an account?{" "}
-            {/* <Link href="/signup" className="text-blue-500 hover:underline">
-              Sign up
-            </Link> */}
+            Already a user?{" "}
+            <a href="/" className="text-blue-500 hover:underline">
+              Sign in
+            </a>
           </p>
         </div>
       </div>
