@@ -444,7 +444,7 @@ def generateLink(request, uid):
             permission=validated_permission
         )
         # Return the download link
-        download_link = f"http://localhost:8000/api/serveFiles/{temp_link.token}?permission={permission}"
+        download_link = f"https://localhost:8443/api/serveFiles/{temp_link.token}?permission={permission}"
         return Response({
             'status': "Success",
             'data': {
